@@ -1,0 +1,12 @@
+# Hermes local state — never publish
+sessions/
+memories/
+state.db*
+logs/
+workspace/
+plans/
+home/
+*_cache/
+local/
+.env
+auth.json
