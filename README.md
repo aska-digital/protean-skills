@@ -5,17 +5,17 @@ Agent skills we use daily, packaged as a public Hermes tap.
 ## Install
 
 ```bash
-hermes skills tap add ahrazzle/hermes-skills
-hermes skills install ahrazzle/hermes-skills/merge-reconciler
+hermes skills tap add aska-digital/protean-skills
+hermes skills install aska-digital/protean-skills/merge-reconciler
 ```
 
 Any skill in this repo installs the same way — replace the last segment:
 
 ```bash
-hermes skills install ahrazzle/hermes-skills/subagent-oversight
-hermes skills install ahrazzle/hermes-skills/citation-ledger-field-notes
-hermes skills install ahrazzle/hermes-skills/evidence-gated-research-reports
-hermes skills install ahrazzle/hermes-skills/macos-harness
+hermes skills install aska-digital/protean-skills/subagent-oversight
+hermes skills install aska-digital/protean-skills/citation-ledger-field-notes
+hermes skills install aska-digital/protean-skills/evidence-gated-research-reports
+hermes skills install aska-digital/protean-skills/macos-harness
 ```
 
 Built by [ASKA Digital](https://askadigital.com) — we build agent teams.
