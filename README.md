@@ -32,7 +32,7 @@ Built by [ASKA Digital](https://askadigital.com) — we build agent teams.
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE). Copyright holder: **[LICENSE HOLDER — OWNER TO CONFIRM: "ASKA Digital" vs personal name]** — the placeholder on line 3 of LICENSE must be replaced before publishing.
+MIT — see [LICENSE](LICENSE). Copyright holder: **ASKA Digital**.
 
 ## Layout
 
