@@ -49,6 +49,16 @@ python3 scripts/draft_pipeline.py \
 
 Use `--tab "issue draft"` for issue text. Use `--verify-against <file>` for every quoted code or source block. Use `--evidence <file>` for quoted command output. Use `--diff-base <previous.md>` when revising a draft.
 
+## Runtime dependencies
+
+The renderer requires the Python packages `markdown` and `pygments`. The standard library is otherwise sufficient. Install them in the interpreter used for the pipeline:
+
+```bash
+python3 -m pip install markdown pygments
+```
+
+If either package is unavailable, rendering stops with a clear dependency error and the pipeline keeps any existing HTML artifact unchanged. Do not use a hand-edited fallback HTML file.
+
 ## Gates
 
 The pipeline must pass all gates:

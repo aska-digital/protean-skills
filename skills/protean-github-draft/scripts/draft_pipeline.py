@@ -29,6 +29,8 @@ import html as _html
 import re
 import subprocess
 import sys
+import os
+import tempfile
 import webbrowser
 from datetime import datetime
 from pathlib import Path
@@ -130,7 +132,7 @@ def identifier_gate(text: str, allowed: list[str]) -> tuple[bool, dict[str, list
 def prose_gate(md: Path, python: str) -> tuple[bool, str]:
     cp = SKILL_DIR / "scripts" / "check-prose.py"
     if not cp.is_file():
-        return True, "check-prose.py not found (skipped)"
+        return False, "check-prose.py not found (required)"
     p = run([python, str(cp), str(md)])
     out = (p.stdout + p.stderr).strip()
     return ("clean" in out.lower()), out.splitlines()[0] if out else "no output"
@@ -143,6 +145,30 @@ def _flat_body(html: str) -> str:
     return re.sub(r"\s+", " ", body).strip()
 
 
+def _markdown_text(value: str) -> str:
+    """Approximate the visible text produced by Python-Markdown."""
+    value = re.sub(r"!\[([^]]*)\]\([^)]*\)", r"\1", value)
+    value = re.sub(r"\[([^]]+)\]\([^)]*\)", r"\1", value)
+    value = value.replace(r"\|", "|")
+    value = re.sub(r"[`*_~]", "", value)
+    return re.sub(r"\s+", " ", value).strip()
+
+
+def _table_cells(line: str) -> list[str] | None:
+    """Return visible probes for a Markdown table row, or None."""
+    stripped = line.strip()
+    if "|" not in stripped:
+        return None
+    if not (stripped.startswith("|") or stripped.endswith("|")):
+        return None
+    cells = re.split(r"(?<!\\)\|", stripped.strip("|"))
+    if len(cells) < 2:
+        return None
+    if all(re.fullmatch(r"\s*:?-{1,}:?\s*", cell) for cell in cells):
+        return []
+    return [_markdown_text(cell) for cell in cells if _markdown_text(cell)]
+
+
 def fidelity_gate(md_text: str, html: str) -> tuple[bool, list[str]]:
     flat, missing, fence = _flat_body(html), [], False
     for raw in md_text.splitlines():
@@ -150,18 +176,20 @@ def fidelity_gate(md_text: str, html: str) -> tuple[bool, list[str]]:
             fence = not fence
             continue
         line = raw.strip()
-        if re.fullmatch(r"\|[\s\-|]+\|", line):
-            continue
-        # strip only markers that markdown renders instead of printing: leading list/quote/table
-        # markers, heading hashes, backticks/emphasis; keep inner '|', '#' and '->' (log text)
+        if not fence:
+            cells = _table_cells(line)
+            if cells is not None:
+                for cell in cells:
+                    if len(cell) >= 3 and cell not in flat:
+                        missing.append(cell[:80])
+                continue
+        # strip only markers that markdown renders instead of printing
         line = re.sub(r"^\s*(?:\||>|\d+\.|[-*])\s*", "", line)
         line = re.sub(r"^#+\s*", "", line)
-        if not fence:  # fence content is rendered literally, so backticks/emphasis stay in the probe
-            line = re.sub(r"[`*]", "", line)
-        probe = re.sub(r"\s+", " ", line).strip()
+        probe = _markdown_text(line)
         if len(probe) < 3:
             continue
-        if probe not in flat and probe[:40] not in flat:
+        if probe not in flat:
             missing.append(raw[:80])
     return (not missing), missing
 
@@ -235,11 +263,10 @@ def main(argv=None) -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
     out_html = out_dir / f"{args.slug}.html"
 
-    from shutil import copy2
-    prev_html = out_html.with_name(f"{args.slug}.prev.html")
-    if out_html.is_file():
-        copy2(out_html, prev_html)  # SOP: keep the previous render until the new one passes the gates
-    cmd = [args.python, str(RENDERER), "--in", str(args.src), "--out", str(out_html),
+    temp_fd, temp_name = tempfile.mkstemp(prefix=f".{args.slug}.", suffix=".html", dir=out_dir)
+    os.close(temp_fd)
+    temp_html = Path(temp_name)
+    cmd = [args.python, str(RENDERER), "--in", str(args.src), "--out", str(temp_html),
            "--repo", args.repo, "--tab", args.tab, "--title", args.title, "--badge", args.badge]
     if args.owners:
         cmd += ["--owners", args.owners]
@@ -249,17 +276,18 @@ def main(argv=None) -> int:
         cmd += ["--diff-base", str(args.diff_base)]
     elif args.rev_dir:
         cmd += ["--rev-dir", str(args.rev_dir)]
-    elif prev_html.is_file():
-        cmd += ["--from-html-baseline", str(prev_html),
+    elif out_html.is_file():
+        cmd += ["--from-html-baseline", str(out_html),
                 "--baseline-label", "previous review render"]
     r = run(cmd)
-    if r.returncode != 0:
+    render_ok = r.returncode == 0 and temp_html.is_file()
+    if not render_ok:
         results.append(("render", False, (r.stderr or r.stdout).strip()[:200]))
     else:
         results.append(("render", True, r.stdout.strip().splitlines()[-1][:160]))
 
-    if out_html.is_file():
-        page = out_html.read_text(encoding="utf-8")
+    if render_ok:
+        page = temp_html.read_text(encoding="utf-8")
         ok, missing = fidelity_gate(md_text, page)
         results.append(("text fidelity", ok, "0 lines missing" if ok else f"MISSING {missing[:5]}"))
         missing_pal = [t for t in PALETTE if t.lower() not in page.lower()]
@@ -271,6 +299,11 @@ def main(argv=None) -> int:
         banner = re.search(r"(no content change|added.{0,40}removed.{0,60}|no baseline)", _flat_body(page), re.I)
         results.append(("change banner", banner is not None, banner.group(0)[:70] if banner else "none"))
 
+    failed = [n for n, p, _ in results if not p]
+    if not failed:
+        os.replace(temp_html, out_html)
+    else:
+        temp_html.unlink(missing_ok=True)
     width = max(len(n) for n, _, _ in results)
     print(f"\ndraft pipeline — {args.slug}")
     print(f"  source : {args.src}")
@@ -278,7 +311,6 @@ def main(argv=None) -> int:
     print(f"  batch  : {batch}")
     for name, passed, note in results:
         print(f"  [{'PASS' if passed else 'FAIL'}] {name.ljust(width)}  {note}")
-    failed = [n for n, p, _ in results if not p]
     print(f"  {'ALL GATES PASS — review the HTML before posting' if not failed else 'BLOCKED: ' + ', '.join(failed)}")
     if args.open and out_html.is_file():
         webbrowser.open(out_html.resolve().as_uri())
