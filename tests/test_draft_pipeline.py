@@ -16,6 +16,15 @@ def test_markdown_table_rows_compare_rendered_cells_without_pipe_markers():
     assert dp.fidelity_gate(markdown, rendered) == (True, [])
 
 
+def test_fenced_text_preserves_markdown_special_markers():
+    markdown = "```text\nrunning pytest tests/test_draft_pipeline.py\npath_with_underscores/*.py `literal` ~tilde~ *asterisk*\n```\n"
+    rendered = (
+        "<pre><code>running pytest tests/test_draft_pipeline.py\n"
+        "path_with_underscores/*.py `literal` ~tilde~ *asterisk*\n</code></pre>"
+    )
+    assert dp.fidelity_gate(markdown, rendered) == (True, [])
+
+
 def test_missing_prose_checker_is_a_hard_failure(tmp_path, monkeypatch):
     monkeypatch.setattr(dp, "SKILL_DIR", tmp_path)
     source = tmp_path / "draft.md"

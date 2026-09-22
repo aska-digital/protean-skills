@@ -183,10 +183,14 @@ def fidelity_gate(md_text: str, html: str) -> tuple[bool, list[str]]:
                     if len(cell) >= 3 and cell not in flat:
                         missing.append(cell[:80])
                 continue
-        # strip only markers that markdown renders instead of printing
-        line = re.sub(r"^\s*(?:\||>|\d+\.|[-*])\s*", "", line)
-        line = re.sub(r"^#+\s*", "", line)
-        probe = _markdown_text(line)
+        if fence:
+            # Fenced content renders literally; only normalize whitespace.
+            probe = re.sub(r"\s+", " ", line).strip()
+        else:
+            # Strip only markers that markdown renders instead of printing.
+            line = re.sub(r"^\s*(?:\||>|\d+\.|[-*])\s*", "", line)
+            line = re.sub(r"^#+\s*", "", line)
+            probe = _markdown_text(line)
         if len(probe) < 3:
             continue
         if probe not in flat:
