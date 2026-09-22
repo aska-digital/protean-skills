@@ -16,6 +16,7 @@ hermes skills install aska-digital/protean-skills/subagent-oversight
 hermes skills install aska-digital/protean-skills/citation-ledger-field-notes
 hermes skills install aska-digital/protean-skills/evidence-gated-research-reports
 hermes skills install aska-digital/protean-skills/macos-harness
+hermes skills install aska-digital/protean-skills/protean-github-draft
 ```
 
 Built by [ASKA Digital](https://askadigital.com) — we build agent teams.
@@ -29,6 +30,7 @@ Built by [ASKA Digital](https://askadigital.com) — we build agent teams.
 | [citation-ledger-field-notes](skills/citation-ledger-field-notes/SKILL.md) | Field lessons for running a grounded-citations evidence ledger. |
 | [evidence-gated-research-reports](skills/evidence-gated-research-reports/SKILL.md) | Building cited research dossiers for handoff. |
 | [macos-harness](skills/macos-harness/SKILL.md) | Driving the user's real logged-in Chrome (CDP) and composing multi-step logic in one persistent Python process. |
+| [protean-github-draft](skills/protean-github-draft/SKILL.md) | Render GitHub post drafts as self-contained dark HTML for review. |
 
 ## Licence
 
@@ -37,4 +39,3 @@ MIT — see [LICENSE](LICENSE). Copyright holder: **ASKA Digital**.
 ## Layout
 
 Standard Hermes tap layout: `skills/<name>/SKILL.md`, installable via `hermes skills tap add` and indexed by skills.sh. No registry sign-up.
-
